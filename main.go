@@ -50,7 +50,7 @@ func main() {
 	router.HandleFunc("/users", userEndpoints.Create).Methods("POST")
 	router.HandleFunc("/users/{id}", userEndpoints.Get).Methods("GET")
 	router.HandleFunc("/users", userEndpoints.GetAll).Methods("GET")
-	router.HandleFunc("/users/{id}", userEndpoints.Update).Methods("PUT")
+	router.HandleFunc("/users/{id}", userEndpoints.Update).Methods("PATCH")
 	router.HandleFunc("/users/{id}", userEndpoints.Delete).Methods("DELETE")
 
 	srv := &http.Server{
