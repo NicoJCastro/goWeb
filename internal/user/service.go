@@ -16,7 +16,7 @@ type (
 	Service interface {
 		Create(firstName, lastName, email, phone string) (*User, error)
 		Get(id string) (*User, error)
-		GetAll(filters Filters) ([]User, error)
+		GetAll(filters Filters, offset, limit int) ([]User, error)
 		Delete(id string) error
 		Update(id string, firstName *string, lastName *string, email *string, phone *string) error
 		Count(filters Filters) (int64, error)
@@ -64,9 +64,9 @@ func (s service) Create(firstName, lastName, email, phone string) (*User, error)
 	return &user, nil
 }
 
-func (s service) GetAll(filters Filters) ([]User, error) {
+func (s service) GetAll(filters Filters, offset, limit int) ([]User, error) {
 	s.log.Println("---- Getting all users ----")
-	users, err := s.repo.GetAll(filters)
+	users, err := s.repo.GetAll(filters, offset, limit)
 	if err != nil {
 		s.log.Printf("Error getting users: %v\n", err)
 		return nil, err

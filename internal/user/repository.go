@@ -11,7 +11,7 @@ import (
 
 type Repository interface {
 	Create(user *User) error
-	GetAll(filters Filters) ([]User, error)
+	GetAll(filters Filters, offset, limit int) ([]User, error)
 	Get(id string) (*User, error)
 	Delete(id string) error
 	Update(id string, firstName *string, lastName *string, email *string, phone *string) error
@@ -40,11 +40,11 @@ func (r *repository) Create(user *User) error {
 	return nil
 }
 
-func (r *repository) GetAll(filters Filters) ([]User, error) {
+func (r *repository) GetAll(filters Filters, offset, limit int) ([]User, error) {
 	var users []User
 	tx := r.db.Model(&users)
 	tx = applyFilters(tx, filters)
-
+	tx = tx.Limit(limit).Offset(offset)
 	result := tx.Order("created_at desc").Find(&users)
 	if result.Error != nil {
 		r.log.Println("Error getting users: ", result.Error)

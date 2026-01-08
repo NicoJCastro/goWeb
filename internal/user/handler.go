@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"goWeb/pkg/meta"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -97,19 +98,22 @@ func makeGetAllEndpoint(s Service) Controller {
 			Phone:     v.Get("phone"),
 		}
 
+		limit, _ := strconv.Atoi(v.Get("limit"))
+		page, _ := strconv.Atoi(v.Get("page"))
+
 		count, err := s.Count(filters)
 		if err != nil {
 			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to count users"})
 			return
 		}
 
-		metaData, err := meta.New(int(count))
+		metaData, err := meta.New(page, limit, int(count))
 		if err != nil {
 			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to create metadata"})
 			return
 		}
 
-		users, err := s.GetAll(filters)
+		users, err := s.GetAll(filters, metaData.Offset(), metaData.Limit())
 		if err != nil {
 			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to get users"})
 			return
