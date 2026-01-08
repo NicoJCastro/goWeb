@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -29,8 +28,6 @@ func NewRepository(log *log.Logger, db *gorm.DB) Repository {
 
 func (r *repository) Create(user *User) error {
 	r.log.Println("---- Creating user in DB ----")
-	// uuid
-	user.ID = uuid.New().String()
 	result := r.db.Create(user)
 	if result.Error != nil {
 		r.log.Println("Error creating user: ", result.Error)
