@@ -2,6 +2,7 @@ package user
 
 import (
 	"encoding/json"
+	"goWeb/pkg/meta"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -32,8 +33,11 @@ type (
 		Phone     *string `json:"phone"`
 	}
 
-	ErrorResponse struct {
-		Error string `json:"error"`
+	Response struct {
+		Status int         `json:"status"`
+		Data   interface{} `json:"data,omitempty"`
+		Err    string      `json:"error,omitempty"`
+		Meta   *meta.Meta  `json:"meta,omitempty"`
 	}
 )
 
@@ -51,21 +55,21 @@ func makeCreateEndpoint(s Service) Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid request payload"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusBadRequest, Err: "Invalid request payload"})
 			return
 		}
 
 		if req.FirstName == "" || req.LastName == "" || req.Email == "" || req.Phone == "" {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "All fields are required"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusBadRequest, Err: "All fields are required"})
 			return
 		}
 
 		user, err := s.Create(req.FirstName, req.LastName, req.Email, req.Phone)
 		if err != nil {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Failed to create user"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to create user"})
 			return
 		}
-		json.NewEncoder(w).Encode(user)
+		json.NewEncoder(w).Encode(&Response{Status: http.StatusCreated, Data: user})
 	}
 }
 
@@ -75,21 +79,43 @@ func makeGetEndpoint(s Service) Controller {
 		id := path["id"]
 		user, err := s.Get(id)
 		if err != nil {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Failed to get user"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to get user"})
 			return
 		}
-		json.NewEncoder(w).Encode(user)
+		json.NewEncoder(w).Encode(&Response{Status: http.StatusOK, Data: user})
 	}
 }
 
 func makeGetAllEndpoint(s Service) Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := s.GetAll()
+
+		v := r.URL.Query()
+		filters := Filters{
+			FirstName: v.Get("first_name"),
+			LastName:  v.Get("last_name"),
+			Email:     v.Get("email"),
+			Phone:     v.Get("phone"),
+		}
+
+		count, err := s.Count(filters)
 		if err != nil {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Failed to get users"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to count users"})
 			return
 		}
-		json.NewEncoder(w).Encode(users)
+
+		metaData, err := meta.New(int(count))
+		if err != nil {
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to create metadata"})
+			return
+		}
+
+		users, err := s.GetAll(filters)
+		if err != nil {
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to get users"})
+			return
+		}
+
+		json.NewEncoder(w).Encode(&Response{Status: http.StatusOK, Data: users, Meta: metaData})
 	}
 }
 
@@ -97,26 +123,26 @@ func makeUpdateEndpoint(s Service) Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req UpdateRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid request payload"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusBadRequest, Err: "Invalid request payload"})
 			return
 		}
 
 		if req.FirstName != nil && *req.FirstName == "" {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "First name cannot be empty"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusBadRequest, Err: "First name cannot be empty"})
 			return
 		}
 		if req.LastName != nil && *req.LastName == "" {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Last name cannot be empty"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusBadRequest, Err: "Last name cannot be empty"})
 			return
 		}
 		path := mux.Vars(r)
 		id := path["id"]
 		err := s.Update(id, req.FirstName, req.LastName, req.Email, req.Phone)
 		if err != nil {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Failed to update user"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to update user"})
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]string{"data": "User updated successfully"})
+		json.NewEncoder(w).Encode(&Response{Status: http.StatusOK, Data: map[string]string{"data": "User updated successfully"}})
 	}
 }
 
@@ -126,9 +152,9 @@ func makeDeleteEndpoint(s Service) Controller {
 		id := path["id"]
 		err := s.Delete(id)
 		if err != nil {
-			json.NewEncoder(w).Encode(ErrorResponse{Error: "Failed to delete user"})
+			json.NewEncoder(w).Encode(&Response{Status: http.StatusInternalServerError, Err: "Failed to delete user"})
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]string{"data": "User deleted successfully"})
+		json.NewEncoder(w).Encode(&Response{Status: http.StatusOK, Data: map[string]string{"data": "User deleted successfully"}})
 	}
 }

@@ -5,19 +5,28 @@ import (
 	"log"
 )
 
-type Service interface {
-	Create(firstName, lastName, email, phone string) (*User, error)
-	Get(id string) (*User, error)
-	GetAll() ([]User, error)
-	Delete(id string) error
-	Update(id string, firstName *string, lastName *string, email *string, phone *string) error
-}
+type (
+	Filters struct {
+		FirstName string
+		LastName  string
+		Email     string
+		Phone     string
+	}
 
-// minúscula porque es privado
-type service struct {
-	log  *log.Logger
-	repo Repository
-}
+	Service interface {
+		Create(firstName, lastName, email, phone string) (*User, error)
+		Get(id string) (*User, error)
+		GetAll(filters Filters) ([]User, error)
+		Delete(id string) error
+		Update(id string, firstName *string, lastName *string, email *string, phone *string) error
+		Count(filters Filters) (int64, error)
+	}
+	// minúscula porque es privado
+	service struct {
+		log  *log.Logger
+		repo Repository
+	}
+)
 
 func NewService(log *log.Logger, repo Repository) Service {
 	return &service{
@@ -55,9 +64,9 @@ func (s service) Create(firstName, lastName, email, phone string) (*User, error)
 	return &user, nil
 }
 
-func (s service) GetAll() ([]User, error) {
+func (s service) GetAll(filters Filters) ([]User, error) {
 	s.log.Println("---- Getting all users ----")
-	users, err := s.repo.GetAll()
+	users, err := s.repo.GetAll(filters)
 	if err != nil {
 		s.log.Printf("Error getting users: %v\n", err)
 		return nil, err
@@ -82,4 +91,8 @@ func (s service) Delete(id string) error {
 func (s service) Update(id string, firstName *string, lastName *string, email *string, phone *string) error {
 	s.log.Println("---- Updating user ----")
 	return s.repo.Update(id, firstName, lastName, email, phone)
+}
+
+func (s service) Count(filters Filters) (int64, error) {
+	return s.repo.Count(filters)
 }

@@ -1,17 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"goWeb/internal/user"
+	"goWeb/pkg/bootstrap"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -21,23 +18,13 @@ func main() {
 
 	_ = godotenv.Load()
 	//logger
-	logger := log.New(os.Stdout, "user-api ", log.LstdFlags|log.Lshortfile)
+	logger := bootstrap.InitLogger()
 
-	//DSN
-
-	dsn := fmt.Sprintf("%s:%s@(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		os.Getenv("DATABASE_USER"),
-		os.Getenv("DATABASE_PASSWORD"),
-		os.Getenv("DATABASE_HOST"),
-		os.Getenv("DATABASE_PORT"),
-		os.Getenv("DATABASE_NAME"),
-	)
-
-	//conexion a la base de datos
-	db, _ := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	db = db.Debug()
-
-	_ = db.AutoMigrate(&user.User{})
+	//db
+	db, err := bootstrap.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//Antes de usar el servicio, se debe crear el repositorio
 	userRepo := user.NewRepository(logger, db)
@@ -60,8 +47,6 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 	}
 
-	err := srv.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(srv.ListenAndServe())
+
 }

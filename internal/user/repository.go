@@ -1,7 +1,9 @@
 package user
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -9,10 +11,11 @@ import (
 
 type Repository interface {
 	Create(user *User) error
-	GetAll() ([]User, error)
+	GetAll(filters Filters) ([]User, error)
 	Get(id string) (*User, error)
 	Delete(id string) error
 	Update(id string, firstName *string, lastName *string, email *string, phone *string) error
+	Count(filters Filters) (int64, error)
 }
 
 type repository struct {
@@ -37,13 +40,17 @@ func (r *repository) Create(user *User) error {
 	return nil
 }
 
-func (r *repository) GetAll() ([]User, error) {
+func (r *repository) GetAll(filters Filters) ([]User, error) {
 	var users []User
-	result := r.db.Model(&users).Order("created_at desc").Find(&users)
+	tx := r.db.Model(&users)
+	tx = applyFilters(tx, filters)
+
+	result := tx.Order("created_at desc").Find(&users)
 	if result.Error != nil {
 		r.log.Println("Error getting users: ", result.Error)
 		return nil, result.Error
 	}
+
 	return users, nil
 
 }
@@ -89,4 +96,41 @@ func (r *repository) Update(id string, firstName *string, lastName *string, emai
 		return result.Error
 	}
 	return nil
+}
+
+func applyFilters(tx *gorm.DB, filters Filters) *gorm.DB {
+
+	if filters.FirstName != "" {
+		filters.FirstName = fmt.Sprintf("%%%s%%", strings.ToLower(filters.FirstName))
+		tx = tx.Where("LOWER(first_name) LIKE ?", filters.FirstName)
+	}
+
+	if filters.LastName != "" {
+		filters.LastName = fmt.Sprintf("%%%s%%", strings.ToLower(filters.LastName))
+		tx = tx.Where("LOWER(last_name) LIKE ?", filters.LastName)
+	}
+
+	if filters.Email != "" {
+		filters.Email = fmt.Sprintf("%%%s%%", strings.ToLower(filters.Email))
+		tx = tx.Where("LOWER(email) LIKE ?", filters.Email)
+	}
+
+	if filters.Phone != "" {
+		filters.Phone = fmt.Sprintf("%%%s%%", strings.ToLower(filters.Phone))
+		tx = tx.Where("LOWER(phone) LIKE ?", filters.Phone)
+	}
+
+	return tx
+}
+
+func (r *repository) Count(filters Filters) (int64, error) {
+	var count int64
+	tx := r.db.Model(&User{})
+	tx = applyFilters(tx, filters)
+	result := tx.Count(&count)
+	if result.Error != nil {
+		r.log.Println("Error counting users: ", result.Error)
+		return 0, result.Error
+	}
+	return count, nil
 }
