@@ -1,6 +1,7 @@
 package course
 
 import (
+	"goWeb/internal/domain"
 	"log"
 	"time"
 )
@@ -11,9 +12,9 @@ type (
 	}
 
 	Service interface {
-		Create(name, startDate, endDate string) (*Course, error)
-		Get(id string) (*Course, error)
-		GetAll(filters Filters, offset, limit int) ([]Course, error)
+		Create(name, startDate, endDate string) (*domain.Course, error)
+		Get(id string) (*domain.Course, error)
+		GetAll(filters Filters, offset, limit int) ([]domain.Course, error)
 		Delete(id string) error
 		Update(id string, name *string, startDate *string, endDate *string) error
 		Count(filters Filters) (int64, error)
@@ -32,7 +33,7 @@ func NewService(log *log.Logger, repo Repository) Service {
 	}
 }
 
-func (s *service) Create(name, startDate, endDate string) (*Course, error) {
+func (s *service) Create(name, startDate, endDate string) (*domain.Course, error) {
 	s.log.Println("---- Creating course ----")
 
 	startDateParsed, err := time.Parse("2006-01-02", startDate)
@@ -47,7 +48,7 @@ func (s *service) Create(name, startDate, endDate string) (*Course, error) {
 		return nil, err
 	}
 
-	course := &Course{
+	course := &domain.Course{
 		Name:      name,
 		StartDate: startDateParsed,
 		EndDate:   endDateParsed,
@@ -61,7 +62,7 @@ func (s *service) Create(name, startDate, endDate string) (*Course, error) {
 	return course, nil
 }
 
-func (s service) GetAll(filters Filters, offset, limit int) ([]Course, error) {
+func (s service) GetAll(filters Filters, offset, limit int) ([]domain.Course, error) {
 	s.log.Println("---- Getting all courses ----")
 	courses, err := s.repo.GetAll(filters, offset, limit)
 	if err != nil {
@@ -71,7 +72,7 @@ func (s service) GetAll(filters Filters, offset, limit int) ([]Course, error) {
 	return courses, nil
 }
 
-func (s service) Get(id string) (*Course, error) {
+func (s service) Get(id string) (*domain.Course, error) {
 	course, err := s.repo.Get(id)
 	if err != nil {
 		s.log.Printf("Error getting course: %v\n", err)

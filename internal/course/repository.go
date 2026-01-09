@@ -2,6 +2,7 @@ package course
 
 import (
 	"fmt"
+	"goWeb/internal/domain"
 	"log"
 	"strings"
 	"time"
@@ -11,9 +12,9 @@ import (
 
 type (
 	Repository interface {
-		Create(course *Course) error
-		GetAll(filter Filters, offset, limit int) ([]Course, error)
-		Get(id string) (*Course, error)
+		Create(course *domain.Course) error
+		GetAll(filter Filters, offset, limit int) ([]domain.Course, error)
+		Get(id string) (*domain.Course, error)
 		Delete(id string) error
 		Update(id string, name *string, startDate *time.Time, endDate *time.Time) error
 		Count(filters Filters) (int64, error)
@@ -32,7 +33,7 @@ func NewRepo(db *gorm.DB, logger *log.Logger) Repository {
 	}
 }
 
-func (r *repo) Create(course *Course) error {
+func (r *repo) Create(course *domain.Course) error {
 	if err := r.db.Create(course).Error; err != nil {
 		r.log.Printf("error: %v", err)
 		return err
@@ -42,8 +43,8 @@ func (r *repo) Create(course *Course) error {
 	return nil
 }
 
-func (r *repo) GetAll(filters Filters, offset, limit int) ([]Course, error) {
-	var courses []Course
+func (r *repo) GetAll(filters Filters, offset, limit int) ([]domain.Course, error) {
+	var courses []domain.Course
 	tx := r.db.Model(&courses)
 	tx = applyFilters(tx, filters)
 	tx = tx.Limit(limit).Offset(offset)
@@ -56,8 +57,8 @@ func (r *repo) GetAll(filters Filters, offset, limit int) ([]Course, error) {
 	return courses, nil
 }
 
-func (r *repo) Get(id string) (*Course, error) {
-	course := Course{ID: id}
+func (r *repo) Get(id string) (*domain.Course, error) {
+	course := domain.Course{ID: id}
 	result := r.db.First(&course)
 	if result.Error != nil {
 		r.log.Println("Error getting course: ", result.Error)
@@ -67,7 +68,7 @@ func (r *repo) Get(id string) (*Course, error) {
 }
 
 func (r *repo) Delete(id string) error {
-	course := Course{ID: id}
+	course := domain.Course{ID: id}
 	result := r.db.Delete(&course)
 	if result.Error != nil {
 		r.log.Println("Error deleting course: ", result.Error)
@@ -88,7 +89,7 @@ func (r *repo) Update(id string, name *string, startDate *time.Time, endDate *ti
 	if endDate != nil {
 		updates["end_date"] = *endDate
 	}
-	result := r.db.Model(&Course{}).Where("id = ?", id).Updates(updates)
+	result := r.db.Model(&domain.Course{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		r.log.Println("Error updating course: ", result.Error)
 		return result.Error
@@ -107,7 +108,7 @@ func applyFilters(tx *gorm.DB, filters Filters) *gorm.DB {
 
 func (r *repo) Count(filters Filters) (int64, error) {
 	var count int64
-	tx := r.db.Model(&Course{})
+	tx := r.db.Model(&domain.Course{})
 	tx = applyFilters(tx, filters)
 	result := tx.Count(&count)
 	if result.Error != nil {

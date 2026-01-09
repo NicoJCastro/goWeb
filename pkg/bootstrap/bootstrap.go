@@ -2,10 +2,9 @@ package bootstrap
 
 import (
 	"fmt"
-	"goWeb/internal/course"
+	"goWeb/internal/domain"
 	"log"
 	"os"
-	"os/user"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -29,11 +28,11 @@ func DBConnection() (*gorm.DB, error) {
 	}
 
 	if os.Getenv("DATABASE_MIGRATE") == "true" {
-		if err := db.AutoMigrate(&user.User{}); err != nil {
+		if err := db.AutoMigrate(&domain.User{}); err != nil {
 			return nil, err
 		}
 
-		if err := db.AutoMigrate(&course.Course{}); err != nil {
+		if err := db.AutoMigrate(&domain.Course{}); err != nil {
 			return nil, err
 		}
 	}
