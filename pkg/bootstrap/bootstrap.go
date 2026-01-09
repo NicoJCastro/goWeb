@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"goWeb/internal/course"
 	"log"
 	"os"
 	"os/user"
@@ -29,6 +30,10 @@ func DBConnection() (*gorm.DB, error) {
 
 	if os.Getenv("DATABASE_MIGRATE") == "true" {
 		if err := db.AutoMigrate(&user.User{}); err != nil {
+			return nil, err
+		}
+
+		if err := db.AutoMigrate(&course.Course{}); err != nil {
 			return nil, err
 		}
 	}

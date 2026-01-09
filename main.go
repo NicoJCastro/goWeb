@@ -1,6 +1,7 @@
 package main
 
 import (
+	"goWeb/internal/course"
 	"goWeb/internal/user"
 	"goWeb/pkg/bootstrap"
 	"log"
@@ -39,6 +40,17 @@ func main() {
 	router.HandleFunc("/users", userEndpoints.GetAll).Methods("GET")
 	router.HandleFunc("/users/{id}", userEndpoints.Update).Methods("PATCH")
 	router.HandleFunc("/users/{id}", userEndpoints.Delete).Methods("DELETE")
+
+	//course endpoints
+	courseRepo := course.NewRepo(db, logger)
+	courseService := course.NewService(logger, courseRepo)
+
+	courseEndpoint := course.MakeEndpoint(courseService)
+	router.HandleFunc("/courses", courseEndpoint.Create).Methods("POST")
+	router.HandleFunc("/courses/{id}", courseEndpoint.Get).Methods("GET")
+	router.HandleFunc("/courses", courseEndpoint.GetAll).Methods("GET")
+	router.HandleFunc("/courses/{id}", courseEndpoint.Update).Methods("PATCH")
+	router.HandleFunc("/courses/{id}", courseEndpoint.Delete).Methods("DELETE")
 
 	srv := &http.Server{
 		Handler:      router,
